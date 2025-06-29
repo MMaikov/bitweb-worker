@@ -34,18 +34,8 @@ public class TextQueueListener {
 
         System.out.println("Received message from textQueue: " + textUploadMessage.getUuid() + " " + textUploadMessage.getFileName());
 
-        String[] words = message.strip().split("\\s");
-        Map<String, Integer> wordFrequency = new HashMap<>();
-
-        for (String word : words) {
-            if (wordFrequency.containsKey(word)) {
-                int oldFreq = wordFrequency.get(word);
-                oldFreq += 1;
-                wordFrequency.put(word, oldFreq);
-            } else {
-                wordFrequency.put(word, 1);
-            }
-        }
+        String[] words = getWords(textUploadMessage.getContent());
+        Map<String, Integer> wordFrequency = getWordFrequency(words);
 
         String result;
         try {
@@ -56,5 +46,23 @@ public class TextQueueListener {
 
         UploadMetadata uploadMetadata = new UploadMetadata(textUploadMessage.getUuid(), textUploadMessage.getFileName(), "done", result);
         metadataRepository.save(uploadMetadata);
+    }
+
+    private static String[] getWords(String text) {
+        return text.strip().split("\\s");
+    }
+
+    private static Map<String, Integer> getWordFrequency(String[] words) {
+        Map<String, Integer> wordFrequency = new HashMap<>();
+        for (String word : words) {
+            if (wordFrequency.containsKey(word)) {
+                int oldFreq = wordFrequency.get(word);
+                oldFreq += 1;
+                wordFrequency.put(word, oldFreq);
+            } else {
+                wordFrequency.put(word, 1);
+            }
+        }
+        return wordFrequency;
     }
 }
