@@ -1,6 +1,5 @@
 package com.example.bitwebworker;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -25,27 +24,16 @@ public class TextQueueListener {
     @RabbitListener(queues = "textQueue")
     public void receiveMessage(String message) {
 
-        TextUploadMessage textUploadMessage;
-        try {
-            textUploadMessage = objectMapper.readValue(message, TextUploadMessage.class);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        TextUploadMessage textUploadMessage = ExceptionHandler.runUnchecked(() -> objectMapper.readValue(message, TextUploadMessage.class));
 
         System.out.println("Received message from textQueue: " + textUploadMessage.getUuid() + " " + textUploadMessage.getFileName());
 
         String[] words = getWords(textUploadMessage.getContent());
         Map<String, Integer> wordFrequency = getWordFrequency(words);
 
-        String result;
-        try {
-            result = objectMapper.writeValueAsString(wordFrequency);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        String result = ExceptionHandler.runUnchecked(() -> objectMapper.writeValueAsString(wordFrequency));
 
-        UploadMetadata uploadMetadata = new UploadMetadata(textUploadMessage.getUuid(), textUploadMessage.getFileName(), "done", result);
-        metadataRepository.save(uploadMetadata);
+        metadataRepository.save(new UploadMetadata(textUploadMessage.getUuid(), textUploadMessage.getFileName(), "done", result));
     }
 
     private static String[] getWords(String text) {
